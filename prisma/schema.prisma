@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model posts {
+  id             Int             @id @default(autoincrement())
+  content        String?         @db.Text
+  user_id        Int
+  likes_count    String          @default("0") @db.VarChar(50)
+  comments_count String          @default("0") @db.VarChar(50)
+  created_at     DateTime        @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?       @db.Timestamp(0)
+  post_comments  post_comments[]
+  post_images    post_images[]
+  post_likes     post_likes[]
+  users          users           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_posts_users_id")
+
+  @@index([user_id], map: "fk_posts_users_id")
+}
+
+model users {
+  id                                       Int                  @id @default(autoincrement())
+  email                                    String               @unique(map: "Users_email_key") @db.VarChar(255)
+  password                                 String               @db.VarChar(255)
+  avatar                                   String?              @db.VarChar(255)
+  name                                     String               @db.VarChar(255)
+  company_name                             String               @db.VarChar(255)
+  company_type                             users_role
+  tax_code                                 String?              @db.VarChar(255)
+  business_type_id                         Int
+  is_verified                              Boolean              @default(false)
+  phone_number_country                     String               @db.VarChar(255)
+  phone_number_digit                       String               @db.VarChar(255)
+  created_at                               DateTime             @default(now()) @db.Timestamp(0)
+  updated_at                               DateTime?            @db.Timestamp(0)
+  confirm_otp_google                       confirm_otp_google[]
+  follows_follows_followed_user_idTousers  follows[]            @relation("follows_followed_user_idTousers")
+  follows_follows_following_user_idTousers follows[]            @relation("follows_following_user_idTousers")
+  messages                                 messages[]
+  notifications                            notifications[]
+  post_comments                            post_comments[]
+  post_likes                               post_likes[]
+  posts                                    posts[]
+  room_users                               room_users[]
+  rooms                                    rooms[]
+  business_type                            business_type        @relation(fields: [business_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_users_business_type")
+
+  @@index([business_type_id], map: "fk_users_business_type")
+}
+
+model post_likes {
+  id         Int       @id @default(autoincrement())
+  post_id    Int
+  user_id    Int
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  posts      posts     @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_likes_posts_id")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_likes_users_id")
+
+  @@index([post_id], map: "fk_post_likes_posts_id")
+  @@index([user_id], map: "fk_post_likes_users_id")
+}
+
+model post_comments {
+  id         Int       @id @default(autoincrement())
+  post_id    Int
+  user_id    Int
+  content    String    @db.Text
+  status     Int
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  posts      posts     @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_comments_posts_id")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_comments_users_id")
+
+  @@index([post_id], map: "fk_post_comments_posts_id")
+  @@index([user_id], map: "fk_post_comments_users_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model follows {
+  id                                     Int       @id @default(autoincrement())
+  following_user_id                      Int?
+  followed_user_id                       Int?
+  create_at                              DateTime  @default(now()) @db.Timestamp(0)
+  updated_at                             DateTime? @db.Timestamp(0)
+  users_follows_followed_user_idTousers  users?    @relation("follows_followed_user_idTousers", fields: [followed_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_follows_followed_users_id")
+  users_follows_following_user_idTousers users?    @relation("follows_following_user_idTousers", fields: [following_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_follows_following_users_id")
+
+  @@index([followed_user_id], map: "fk_follows_followed_users_id")
+  @@index([following_user_id], map: "fk_follows_following_users_id")
+}
+
+model messages {
+  id         Int       @id @default(autoincrement())
+  room_id    Int
+  user_id    Int
+  content    String    @db.Text
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  deleted_at DateTime? @db.Timestamp(0)
+  rooms      rooms     @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_messages_rooms_id")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_messages_users_id")
+
+  @@index([user_id], map: "fk_messages_users_id")
+  @@index([room_id], map: "fk_messages_rooms_id")
+}
+
+model rooms {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(255)
+  user_id    Int
+  created_at DateTime     @default(now()) @db.Timestamp(0)
+  updated_at DateTime?    @db.Timestamp(0)
+  messages   messages[]
+  room_users room_users[]
+  users      users        @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rooms_users_id")
+
+  @@index([user_id], map: "fk_rooms_users_id")
+}
+
+model room_users {
+  id         Int       @id @default(autoincrement())
+  room_id    Int
+  user_id    Int
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  rooms      rooms     @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_users_rooms_id")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_users_users_id")
+
+  @@index([user_id], map: "fk_room_users_users_id")
+  @@index([room_id], map: "fk_room_users_rooms_id")
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  content    String    @db.Text
+  status     Int?      @default(0) @db.TinyInt
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_notifications_users_id")
+
+  @@index([user_id], map: "fk_notifications_users_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model confirm_otp_google {
+  id         Int       @id @default(autoincrement())
+  code       String    @db.VarChar(255)
+  purpose    Int       @db.TinyInt
+  user_id    Int
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_confirm_otp_google_users_id")
+
+  @@index([user_id], map: "fk_confirm_otp_google_users_id")
+}
+
+model business_type {
+  id             Int              @id @default(autoincrement())
+  name           String           @db.VarChar(255)
+  created_at     DateTime         @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?        @db.Timestamp(0)
+  business_field business_field[]
+  users          users[]
+}
+
+model business_field {
+  id               Int           @id @default(autoincrement())
+  name             String        @db.VarChar(255)
+  business_type_id Int
+  created_at       DateTime      @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?     @db.Timestamp(0)
+  business_type    business_type @relation(fields: [business_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_business_field_business_type")
+
+  @@index([business_type_id], map: "fk_business_field_business_type")
+}
+
+model post_images {
+  id         Int       @id @default(autoincrement())
+  url        String?   @db.VarChar(255)
+  name       String?   @db.VarChar(255)
+  post_id    Int
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  posts      posts     @relation(fields: [post_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_post_images_posts")
+
+  @@index([post_id], map: "fk_post_images_posts")
+}
+
+enum users_role {
+  INVESTORS
+  STARTUPS
+}
